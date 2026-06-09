@@ -253,14 +253,13 @@ program
 
           console.log(`   Segment ${i}: ${t_start.toFixed(1)}s → ${t_end.toFixed(1)}s (Duration: ${t_duration.toFixed(1)}s)`);
 
-          // Slice narration WAV using FFmpeg
+          // Slice narration WAV using FFmpeg (without copy to force rewriting correct WAV headers)
           const segNarrationPath = path.join(segProjectDir, 'assets', 'narration.wav');
           try {
             await execa('ffmpeg', [
               '-ss', String(t_start),
               '-to', String(t_end),
               '-i', narrationPath,
-              '-c', 'copy',
               '-y',
               segNarrationPath
             ]);
