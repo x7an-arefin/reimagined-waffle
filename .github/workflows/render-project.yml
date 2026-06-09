@@ -11,6 +11,22 @@ on:
         description: 'Render quality: draft, standard, high'
         required: true
         default: 'draft'
+      resolution:
+        description: 'Output resolution preset: 720p, 1080p, 4k, portrait, square'
+        required: true
+        default: '720p'
+      fps:
+        description: 'Frame rate: 15, 24, 30, 60'
+        required: true
+        default: '15'
+      workers:
+        description: 'Render workers (use 1 on standard GitHub runners to avoid CPU thrashing)'
+        required: true
+        default: '1'
+      low_memory_mode:
+        description: 'Force low memory mode to stabilize rendering (true/false)'
+        required: true
+        default: 'true'
 
 jobs:
   render:
@@ -38,12 +54,26 @@ jobs:
         run: |
           PROJECT_DIR="${{ github.event.inputs.project_dir }}"
           QUALITY="${{ github.event.inputs.quality }}"
+          RESOLUTION="${{ github.event.inputs.resolution }}"
+          FPS="${{ github.event.inputs.fps }}"
+          WORKERS="${{ github.event.inputs.workers }}"
+          LOW_MEM="${{ github.event.inputs.low_memory_mode }}"
           
-          echo "Rendering project: $PROJECT_DIR with quality $QUALITY"
+          echo "Rendering project: $PROJECT_DIR"
+          echo "Settings: Quality=$QUALITY, Resolution=$RESOLUTION, FPS=$FPS, Workers=$WORKERS, LowMemory=$LOW_MEM"
           
-          # Run the hyperframes render command inside the project directory
           cd "$PROJECT_DIR"
-          npx hyperframes render --output ../rendered-video.mp4 --quality "$QUALITY"
+          
+          # Construct CLI arguments
+          ARGS="--output ../rendered-video.mp4 --quality $QUALITY --resolution $RESOLUTION --fps $FPS --workers $WORKERS"
+          
+          if [ "$LOW_MEM" = "true" ]; then
+            ARGS="$ARGS --low-memory-mode"
+          else
+            ARGS="$ARGS --no-low-memory-mode"
+          fi
+          
+          npx hyperframes render $ARGS
 
       - name: Upload Rendered Video
         uses: actions/upload-artifact@v4
