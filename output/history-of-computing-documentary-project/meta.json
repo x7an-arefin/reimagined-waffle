@@ -1,0 +1,11 @@
+{
+  "name": "The Infinite Machine: A History of Computing from Gears to Qubits",
+  "id": "history-of-computing-documentary",
+  "style": "feature",
+  "duration": 597.3,
+  "resolution": "1920x1080",
+  "fps": "30",
+  "hasTranscript": false,
+  "created": "2026-06-09T10:01:13.206Z",
+  "generator": "news-hypervideo CLI v0.1.0"
+}

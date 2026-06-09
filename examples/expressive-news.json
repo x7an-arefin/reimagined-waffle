@@ -1,0 +1,38 @@
+{
+  "id": "expressive-news-tech-leak",
+  "title": "The Apple Leak Absolutely NO ONE Noticed",
+  "lead": "Apple just did the unthinkable -- a radical redesign leak that changes everything.",
+  "body": [
+    "It is... a complete disaster. For years, we expected a minor upgrade, but this leak reveals a massive shift.",
+    "First, they removed the charging port entirely! Yes, it is completely gone -- leaving only wireless magnetic connection.",
+    "But the worst part? The price has soared by an absolute fortune! Everyone is furious... and no one is talking about it.",
+    "If this is the future of smartphones, then get ready -- because everything we knew... is about to change."
+  ],
+  "photos": [
+    {
+      "src": "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=1200",
+      "alt": "A sleek glowing smartphone lying on a dark metallic surface",
+      "caption": "Leaked schematics suggest radical layout changes",
+      "credit": "Unsplash"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1556656793-08538906a9f8?w=1200",
+      "alt": "Apple logo glowing brightly on a glass storefront",
+      "caption": "Major policy shift caught inside retail channels",
+      "credit": "Unsplash"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200",
+      "alt": "Disappointed tech reviewer sitting in front of monitors",
+      "caption": "Industry analysts voice serious concerns over cost",
+      "credit": "Unsplash"
+    }
+  ],
+  "voice_script": "This... is a complete disaster. Apple just did the unthinkable--and absolutely NO ONE noticed! For years, we expected a minor upgrade... but this leak reveals a massive shift. First, they removed the charging port entirely! Yes, it is completely gone--leaving only wireless magnetic connection. But the worst part? The price has soared by an absolute fortune! Everyone is furious... and no one is talking about it. If this is the future of smartphones, then get ready--because everything we knew... is about to change!",
+  "style": "feature",
+  "metadata": {
+    "author": "Tech Bytes",
+    "date": "2026-06-09",
+    "source": "Apple Leak Inside"
+  }
+}

@@ -1,0 +1,22 @@
+services:
+  # Local Kokoro TTS server
+  tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    ports:
+      - "8880:8880"
+    restart: unless-stopped
+
+  # Video Generator CLI tool
+  generator:
+    build: .
+    environment:
+      - KOKORO_SERVER_URL=http://tts:8880/tts
+    volumes:
+      - ./output:/usr/src/app/output
+      - ./examples:/usr/src/app/examples
+      - ./test-project:/usr/src/app/test-project
+    # By default, runs generate with arguments.
+    # Override in command line: `docker compose run generator generate examples/sample-news.json --voice af_bella`
+    command: ["generate", "examples/long-history-news.json", "--output", "./output/news-video.mp4"]
+    depends_on:
+      - tts

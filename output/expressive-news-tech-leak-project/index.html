@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Apple Leak Absolutely NO ONE Noticed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Root composition canvas ── */
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #0A2540;
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      color: #FFFFFF;
+    }
+
+    /* ── Photo layers ── */
+    .photo-wrap { pointer-events: none; z-index: 2; }
+    .photo-wrap img { display: block; }
+
+    /* ── Staggered word animation helpers ── */
+    .headline-word, .word {
+      display: inline-block;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+    }
+
+    /* ── Cinematic vignette ── */
+    .vignette-overlay {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 20, 40, 0.72) 100%);
+      pointer-events: none;
+    }
+
+    /* ── Global film grain overlay (static texture, cheap) ── */
+    #grain {
+      position: absolute; inset: 0; z-index: 90;
+      opacity: 0.035;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+      animation: grainDrift 0.15s steps(1) infinite;
+    }
+    @keyframes grainDrift {
+      0%   { background-position: 0 0; }
+      25%  { background-position: -40px -20px; }
+      50%  { background-position: 20px 40px; }
+      75%  { background-position: -20px 20px; }
+      100% { background-position: 40px -40px; }
+    }
+
+    /* ── Persistent dark gradient (bottom overlay for text readability) ── */
+    #bottom-gradient {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 45%;
+      background: linear-gradient(to top, rgba(5, 15, 30, 0.92) 0%, transparent 100%);
+      z-index: 10; pointer-events: none;
+    }
+    #top-gradient {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 25%;
+      background: linear-gradient(to bottom, rgba(5, 15, 30, 0.7) 0%, transparent 100%);
+      z-index: 10; pointer-events: none;
+    }
+
+    /* ── Title block ── */
+    #title-block {
+      position: absolute;
+      bottom: 130px;
+      left: 115px;
+      right: 115px;
+      z-index: 20;
+    }
+    .news-label {
+      display: inline-block;
+      background: #E63946;
+      color: #FFFFFF;
+      font-family: 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 9px 23px;
+      margin-bottom: 19px;
+      border-radius: 3px;
+    }
+    .news-headline {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 73px;
+      font-weight: 900;
+      line-height: 1.08;
+      color: #FFFFFF;
+      text-shadow: 0 3px 24px rgba(0, 0, 0, 0.8), 0 1px 4px rgba(0, 0, 0, 0.5);
+      margin-bottom: 19px;
+      letter-spacing: -0.01em;
+    }
+    .news-lead {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+      font-weight: 500;
+      color: #F0F4F8;
+      line-height: 1.45;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+      max-width: 1440px;
+    }
+
+    /* ── Red accent bar (breaking news style) ── */
+    #accent-bar {
+      position: absolute;
+      bottom: 211px;
+      left: 115px;
+      width: 0;
+      height: 4px;
+      background: #E63946;
+      z-index: 21;
+    }
+
+    /* ── Beat text (body) ── */
+    .beat-text {
+      position: absolute;
+      bottom: 130px;
+      left: 115px;
+      right: 154px;
+      z-index: 20;
+    }
+    .beat-para {
+      font-family: 'Inter', sans-serif;
+      font-size: 37px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #FFFFFF;
+      text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
+      max-width: 1536px;
+    }
+
+    /* ── Caption bar (photo attribution) ── */
+    .caption-bar {
+      position: absolute;
+      bottom: 302px;
+      left: 77px;
+      background: rgba(10, 37, 64, 0.82);
+      backdrop-filter: blur(4px);
+      padding: 9px 27px;
+      border-left: 3px solid #E63946;
+      border-radius: 0 4px 4px 0;
+      z-index: 15;
+      max-width: 1152px;
+    }
+    .caption-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: #F0F4F8;
+    }
+    .caption-credit {
+      font-size: 18px;
+      color: #A0B4C8;
+      font-style: italic;
+    }
+
+    /* ── Date / metadata bar (top-left) ── */
+    #meta-bar {
+      position: absolute;
+      top: 43px;
+      left: 96px;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 29px;
+    }
+    .meta-newspaper {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: #FFFFFF;
+      opacity: 0.92;
+      letter-spacing: 0.02em;
+    }
+    .meta-dot { color: #E63946; font-size: 30px; }
+    .meta-date {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: #A0B4C8;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Outro card ── */
+    #outro {
+      position: absolute; inset: 0;
+      background: #0A2540;
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+    .outro-paper {
+      font-family: 'Playfair Display', serif;
+      font-size: 86px;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: 0.02em;
+    }
+    .outro-tagline {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+      font-weight: 400;
+      color: #A0B4C8;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .outro-accent-line {
+      width: 230px;
+      height: 3px;
+      background: #E63946;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="root"
+     data-composition-id="expressive-news-tech-leak"
+     data-start="0"
+     data-width="1920"
+     data-height="1080">
+
+  <!-- ─── AUDIO TRACKS ─── -->
+  <audio id="narration" class="clip"
+         data-start="0"
+         data-duration="31.90"
+         data-track-index="0"
+         data-volume="1"
+         src="assets/narration.wav"></audio>
+  
+  <audio id="bg-music" class="clip"
+         data-start="0"
+         data-duration="31.90"
+         data-track-index="100"
+         data-volume="0.12"
+         loop
+         src="assets/bg-music.mp3"></audio>
+
+  <!-- ─── BACKGROUND (fallback color, shows through before first photo) ─── -->
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg, #0A2540 0%, #122d4d 100%);z-index:1;"></div>
+
+  <!-- ─── PHOTO SEQUENCE ─── -->
+
+  <!-- Photo 1: A sleek glowing smartphone lying on a dark metallic surface -->
+  <div id="photo-wrap-0" class="clip photo-wrap"
+       data-start="5.5" data-duration="7.3" data-track-index="3"
+       style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;">
+    <img id="photo-img-0" src="assets/photo-1.jpg"
+         alt="A sleek glowing smartphone lying on a dark metallic surface"
+         style="width:100%;height:100%;object-fit:cover;transform-origin:center center;" />
+    <div class="vignette-overlay"></div>
+    <div class="caption-bar" id="caption-0">
+          <span class="caption-text">Leaked schematics suggest radical layout changes</span>
+          <span class="caption-credit"> — Unsplash</span>
+        </div>
+  </div>
+
+  <!-- Photo 2: Apple logo glowing brightly on a glass storefront -->
+  <div id="photo-wrap-1" class="clip photo-wrap"
+       data-start="12.8" data-duration="7.3" data-track-index="5"
+       style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;">
+    <img id="photo-img-1" src="assets/photo-2.jpg"
+         alt="Apple logo glowing brightly on a glass storefront"
+         style="width:100%;height:100%;object-fit:cover;transform-origin:center center;" />
+    <div class="vignette-overlay"></div>
+    <div class="caption-bar" id="caption-1">
+          <span class="caption-text">Major policy shift caught inside retail channels</span>
+          <span class="caption-credit"> — Unsplash</span>
+        </div>
+  </div>
+
+  <!-- Photo 3: Disappointed tech reviewer sitting in front of monitors -->
+  <div id="photo-wrap-2" class="clip photo-wrap"
+       data-start="20.1" data-duration="11.8" data-track-index="7"
+       style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;">
+    <img id="photo-img-2" src="assets/photo-3.jpg"
+         alt="Disappointed tech reviewer sitting in front of monitors"
+         style="width:100%;height:100%;object-fit:cover;transform-origin:center center;" />
+    <div class="vignette-overlay"></div>
+    <div class="caption-bar" id="caption-2">
+          <span class="caption-text">Industry analysts voice serious concerns over cost</span>
+          <span class="caption-credit"> — Unsplash</span>
+        </div>
+  </div>
+
+  <!-- ─── READABILITY GRADIENTS ─── -->
+  <div id="bottom-gradient"></div>
+  <div id="top-gradient"></div>
+
+  <!-- ─── META BAR (top-left: newspaper name + date) ─── -->
+  <div id="meta-bar" class="clip"
+       data-start="0" data-duration="31.90" data-track-index="1">
+    <span class="meta-newspaper">Tech Bytes</span>
+    <span class="meta-dot">•</span>
+    <span class="meta-date">2026-06-09</span>
+  </div>
+
+  <!-- ─── TITLE BLOCK (intro only) ─── -->
+  <div id="accent-bar"></div>
+  <div id="title-block" class="clip"
+       data-start="0" data-duration="6" data-track-index="2"
+       style="transform-style: preserve-3d; z-index: 25;">
+    <div class="news-label" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg class="pulsing-dot" width="12" height="12" viewBox="0 0 12 12" style="overflow: visible;">
+        <circle cx="6" cy="6" r="4" fill="#FFFFFF"></circle>
+      </svg>
+      <span>📰 IN DEPTH</span>
+    </div>
+    <h1 class="news-headline"><span class="headline-word" style="display:inline-block; transform-origin: center bottom;">The</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">Apple</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">Leak</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">Absolutely</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">NO</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">ONE</span> <span class="headline-word" style="display:inline-block; transform-origin: center bottom;">Noticed</span></h1>
+    <p class="news-lead">Apple just did the unthinkable -- a radical redesign leak that changes everything.</p>
+  </div>
+
+  <!-- ─── SVG CORNER RETICLES & PROGRESS BAR ─── -->
+  <svg id="reticles" width="100%" height="100%" style="position:absolute; inset:0; z-index: 30; pointer-events:none;">
+    <path id="reticle-tl" d="M 40 80 L 40 40 L 80 40" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="square" />
+    <path id="reticle-tr" d="M 1840 40 L 1880 40 L 1880 80" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="square" />
+    <path id="reticle-bl" d="M 40 1000 L 40 1040 L 80 1040" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="square" />
+    <path id="reticle-br" d="M 1840 1040 L 1880 1040 L 1880 1000" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="square" />
+  </svg>
+
+  <div id="progress-container" style="position:absolute; bottom:0; left:0; right:0; height: 6px; background: rgba(255,255,255,0.1); z-index: 100;">
+    <div id="progress-bar" style="width:0%; height:100%; background: linear-gradient(to right, #E63946, #F4A261); box-shadow: 0 0 10px #E63946;"></div>
+  </div>
+
+  <!-- ─── BODY TEXT BEATS (one per paragraph) ─── -->
+
+  <!-- Beat 1 -->
+  <div id="beat-0" class="clip beat-text"
+       data-start="8.00"
+       data-duration="4.85"
+       data-track-index="9"
+       style="opacity:0; perspective: 800px; transform-style: preserve-3d;">
+    <p class="beat-para"><span class="word" data-word-idx="0">It</span> <span class="word" data-word-idx="1">is...</span> <span class="word" data-word-idx="2">a</span> <span class="word" data-word-idx="3">complete</span> <span class="word" data-word-idx="4">disaster.</span> <span class="word" data-word-idx="5">For</span> <span class="word" data-word-idx="6">years,</span> <span class="word" data-word-idx="7">we</span> <span class="word" data-word-idx="8">expected</span> <span class="word" data-word-idx="9">a</span> <span class="word" data-word-idx="10">minor</span> <span class="word" data-word-idx="11">upgrade,</span> <span class="word" data-word-idx="12">but</span> <span class="word" data-word-idx="13">this</span> <span class="word" data-word-idx="14">leak</span> <span class="word" data-word-idx="15">reveals</span> <span class="word" data-word-idx="16">a</span> <span class="word" data-word-idx="17">massive</span> <span class="word" data-word-idx="18">shift.</span></p>
+  </div>
+
+  <!-- Beat 2 -->
+  <div id="beat-1" class="clip beat-text"
+       data-start="12.85"
+       data-duration="4.85"
+       data-track-index="10"
+       style="opacity:0; perspective: 800px; transform-style: preserve-3d;">
+    <p class="beat-para"><span class="word" data-word-idx="0">First,</span> <span class="word" data-word-idx="1">they</span> <span class="word" data-word-idx="2">removed</span> <span class="word" data-word-idx="3">the</span> <span class="word" data-word-idx="4">charging</span> <span class="word" data-word-idx="5">port</span> <span class="word" data-word-idx="6">entirely!</span> <span class="word" data-word-idx="7">Yes,</span> <span class="word" data-word-idx="8">it</span> <span class="word" data-word-idx="9">is</span> <span class="word" data-word-idx="10">completely</span> <span class="word" data-word-idx="11">gone</span> <span class="word" data-word-idx="12">--</span> <span class="word" data-word-idx="13">leaving</span> <span class="word" data-word-idx="14">only</span> <span class="word" data-word-idx="15">wireless</span> <span class="word" data-word-idx="16">magnetic</span> <span class="word" data-word-idx="17">connection.</span></p>
+  </div>
+
+  <!-- Beat 3 -->
+  <div id="beat-2" class="clip beat-text"
+       data-start="17.70"
+       data-duration="4.85"
+       data-track-index="11"
+       style="opacity:0; perspective: 800px; transform-style: preserve-3d;">
+    <p class="beat-para"><span class="word" data-word-idx="0">But</span> <span class="word" data-word-idx="1">the</span> <span class="word" data-word-idx="2">worst</span> <span class="word" data-word-idx="3">part?</span> <span class="word" data-word-idx="4">The</span> <span class="word" data-word-idx="5">price</span> <span class="word" data-word-idx="6">has</span> <span class="word" data-word-idx="7">soared</span> <span class="word" data-word-idx="8">by</span> <span class="word" data-word-idx="9">an</span> <span class="word" data-word-idx="10">absolute</span> <span class="word" data-word-idx="11">fortune!</span> <span class="word" data-word-idx="12">Everyone</span> <span class="word" data-word-idx="13">is</span> <span class="word" data-word-idx="14">furious...</span> <span class="word" data-word-idx="15">and</span> <span class="word" data-word-idx="16">no</span> <span class="word" data-word-idx="17">one</span> <span class="word" data-word-idx="18">is</span> <span class="word" data-word-idx="19">talking</span> <span class="word" data-word-idx="20">about</span> <span class="word" data-word-idx="21">it.</span></p>
+  </div>
+
+  <!-- Beat 4 -->
+  <div id="beat-3" class="clip beat-text"
+       data-start="22.55"
+       data-duration="4.85"
+       data-track-index="12"
+       style="opacity:0; perspective: 800px; transform-style: preserve-3d;">
+    <p class="beat-para"><span class="word" data-word-idx="0">If</span> <span class="word" data-word-idx="1">this</span> <span class="word" data-word-idx="2">is</span> <span class="word" data-word-idx="3">the</span> <span class="word" data-word-idx="4">future</span> <span class="word" data-word-idx="5">of</span> <span class="word" data-word-idx="6">smartphones,</span> <span class="word" data-word-idx="7">then</span> <span class="word" data-word-idx="8">get</span> <span class="word" data-word-idx="9">ready</span> <span class="word" data-word-idx="10">--</span> <span class="word" data-word-idx="11">because</span> <span class="word" data-word-idx="12">everything</span> <span class="word" data-word-idx="13">we</span> <span class="word" data-word-idx="14">knew...</span> <span class="word" data-word-idx="15">is</span> <span class="word" data-word-idx="16">about</span> <span class="word" data-word-idx="17">to</span> <span class="word" data-word-idx="18">change.</span></p>
+  </div>
+
+  <!-- ─── OUTRO ─── -->
+  <div id="outro" class="clip"
+       data-start="27.40"
+       data-duration="5.00"
+       data-track-index="13"
+       style="opacity:0;">
+    <div class="outro-accent-line"></div>
+    <div class="outro-paper">Tech Bytes</div>
+    <div class="outro-tagline">Stay Informed &bull; Stay Ahead</div>
+    <div class="outro-accent-line"></div>
+  </div>
+
+  <!-- ─── FILM GRAIN OVERLAY ─── -->
+  <div id="grain"></div>
+
+  <!-- ─── GSAP (CDN) ─── -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script>
+    /**
+     * news-hypervideo — GSAP Timeline
+     * Generated by news-hypervideo CLI v0.1.0
+     *
+     * Registered as window.__timelines["expressive-news-tech-leak"] for Hyperframes deterministic renderer.
+     * All tweens use absolute time positions (tl.to/from(el, {}, TIME)).
+     * Timeline is PAUSED — Hyperframes seeks it frame-by-frame during render.
+     *
+     * Total duration: 31.90s | Photos: 3 | Beats: 4
+     * Transcript-driven: false
+     */
+    const tl = gsap.timeline({ paused: true });
+
+    // ── PROGRESS BAR & DYNAMIC DOCK RETICLES ──
+    tl.fromTo('#progress-bar', { width: '0%' }, { width: '100%', duration: 31.90, ease: 'none' }, 0);
+    tl.fromTo('#reticle-tl', { x: -30, y: -30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
+    tl.fromTo('#reticle-tr', { x: 30, y: -30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
+    tl.fromTo('#reticle-bl', { x: -30, y: 30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
+    tl.fromTo('#reticle-br', { x: 30, y: 30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
+    tl.fromTo('.pulsing-dot circle', { r: 3, opacity: 0.3 }, { r: 6, opacity: 1, duration: 0.6, repeat: Math.floor(31.9 / 1.2) - 1, yoyo: true, ease: 'sine.inOut' }, 0);
+
+    // ── TITLE SEQUENCE ──
+    // Accent bar wipe in
+    tl.fromTo('#accent-bar', { width: 0 }, { width: '288px', duration: 0.7, ease: 'power3.out' }, 0.2);
+    // Label slam
+    tl.from('.news-label', { opacity: 0, x: -30, duration: 0.5, ease: 'power3.out' }, 0.5);
+    
+    // Headline: 3D staggered word reveal
+    tl.set('#title-block', { perspective: 1000 }, 0);
+    tl.fromTo('.headline-word', 
+      { opacity: 0, y: 50, rotateX: -60, scale: 0.8 }, 
+      { opacity: 1, y: 0, rotateX: 0, scale: 1, duration: 0.85, ease: 'back.out(1.5)', stagger: 0.08 }, 
+      0.6
+    );
+
+    // Lead line
+    tl.from('.news-lead', { opacity: 0, y: 20, duration: 0.9, ease: 'power2.out' }, 1.3);
+    // Meta bar fade in
+    tl.from('#meta-bar', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
+    // Title block fade out at end of intro
+    tl.to('#title-block', { opacity: 0, y: -20, duration: 0.7, ease: 'power2.in' }, 5.5);
+    tl.to('#accent-bar',  { opacity: 0, duration: 0.4, ease: 'power2.in' }, 5.7);
+
+    // ── PHOTO SEQUENCE (Ken Burns + crossfades) ──
+    // Photo 1
+    tl.fromTo('#photo-wrap-0', { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 5.5);
+    tl.fromTo('#photo-img-0', { scale: 1.0, x: 0 }, { scale: 1.07, x: -30, duration: 7.3, ease: 'none' }, 5.5);
+    tl.to('#photo-wrap-0', { opacity: 0, duration: 1.0, ease: 'power2.inOut' }, 12.5);
+    // Photo 2
+    tl.fromTo('#photo-wrap-1', { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 12.8);
+    tl.fromTo('#photo-img-1', { scale: 1.0, x: 0 }, { scale: 1.07, x: 30, duration: 7.3, ease: 'none' }, 12.8);
+    tl.to('#photo-wrap-1', { opacity: 0, duration: 1.0, ease: 'power2.inOut' }, 19.8);
+    // Photo 3
+    tl.fromTo('#photo-wrap-2', { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 20.1);
+    tl.fromTo('#photo-img-2', { scale: 1.0, x: 0 }, { scale: 1.07, x: -30, duration: 11.8, ease: 'none' }, 20.1);
+    tl.to('#photo-wrap-2', { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 27.4);
+
+    // ── BODY TEXT BEATS ──
+    tl.set('#beat-0', { opacity: 1 }, 8.00);
+    tl.fromTo('#beat-0 .word', { opacity: 0.15, y: 15, rotateX: -30 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.6, ease: 'power2.out', stagger: 0.05 }, 8.00);
+    tl.set('#beat-1', { opacity: 1 }, 12.85);
+    tl.fromTo('#beat-1 .word', { opacity: 0.15, y: 15, rotateX: -30 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.6, ease: 'power2.out', stagger: 0.05 }, 12.85);
+    tl.to('#beat-0', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 12.75);
+    tl.set('#beat-2', { opacity: 1 }, 17.70);
+    tl.fromTo('#beat-2 .word', { opacity: 0.15, y: 15, rotateX: -30 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.6, ease: 'power2.out', stagger: 0.05 }, 17.70);
+    tl.to('#beat-1', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 17.60);
+    tl.set('#beat-3', { opacity: 1 }, 22.55);
+    tl.fromTo('#beat-3 .word', { opacity: 0.15, y: 15, rotateX: -30 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.6, ease: 'power2.out', stagger: 0.05 }, 22.55);
+    tl.to('#beat-2', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 22.45);
+    tl.to('#beat-3', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 27.30);
+
+    // ── OUTRO ──
+    tl.to('#outro',         { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 27.40);
+    tl.from('.outro-paper', { opacity: 0, y: 30, duration: 1.0, ease: 'power3.out' }, 27.80);
+    tl.from('.outro-tagline', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 28.30);
+    tl.from('.outro-accent-line', { scaleX: 0, duration: 0.6, ease: 'power3.out', stagger: 0.2 }, 27.70);
+
+    // ── Extend timeline to full duration (zero-cost) ──
+    tl.set({}, {}, 31.9); // extend timeline to full duration
+
+    // ── Register with Hyperframes renderer ──
+    window.__timelines = window.__timelines || {};
+    window.__timelines['expressive-news-tech-leak'] = tl;
+
+    console.log('%c[news-hypervideo] GSAP timeline registered for "expressive-news-tech-leak"', 'color:#E63946;font-weight:bold');
+    console.log('%c  Duration: 31.90s | Photos: 3 | Beats: 4 | Transcript: false', 'color:#888');
+  </script>
+</div>
+
+</body>
+</html>

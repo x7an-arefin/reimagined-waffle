@@ -1,0 +1,78 @@
+name: Generate News Video
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      news_json_path:
+        description: 'Path to the news.json file'
+        required: true
+        default: 'examples/long-history-news.json'
+      voice:
+        description: 'Kokoro voice to use (e.g. af_bella, am_michael, af_sky)'
+        required: true
+        default: 'af_bella'
+
+jobs:
+  build-and-render:
+    runs-on: ubuntu-latest
+
+    # Run Kokoro TTS server in the background as a service container
+    services:
+      kokoro-tts:
+        image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+        ports:
+          - 8880:8880
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript CLI
+        run: npm run build
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Verify Kokoro TTS Service is ready
+        run: |
+          echo "Waiting for Kokoro TTS service to start..."
+          for i in {1..30}; do
+            curl -s http://localhost:8880/web && break || sleep 2
+          done
+          echo "Kokoro TTS is ready!"
+
+      - name: Run Video Generation
+        run: |
+          # Determine paths based on trigger style
+          JSON_PATH="${{ github.event.inputs.news_json_path || 'examples/long-history-news.json' }}"
+          VOICE="${{ github.event.inputs.voice || 'af_bella' }}"
+          
+          # Create output directory
+          mkdir -p output
+          
+          # Run the CLI tool
+          npm run generate -- "$JSON_PATH" --output ./output/news-video.mp4 --voice "$VOICE" --project-dir ./temp-project
+
+      - name: Upload Generated Video Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-video
+          path: output/news-video.mp4
+          if-no-files-found: error

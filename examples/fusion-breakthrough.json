@@ -1,0 +1,38 @@
+{
+  "id": "fusion-energy-breakthrough",
+  "title": "Unlimited Energy: The Fusion Miracle Just Happened!",
+  "lead": "Scientists have achieved a net energy gain of over two hundred percent, paving the way for clean, unlimited power.",
+  "body": [
+    "It is... the holy grail of clean energy. After seven decades of failure, researchers finally unlocked the secret.",
+    "Inside the reactor, hydrogen isotopes fused at over one hundred million degrees Celsius -- creating a miniature star right here on Earth.",
+    "And the best part? It produces zero carbon emissions, and virtually zero nuclear waste. This changes everything.",
+    "If we can scale this technology, fossil fuels... will become a relic of the past."
+  ],
+  "photos": [
+    {
+      "src": "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=1200",
+      "alt": "A massive high-tech fusion reactor chamber with intricate metallic structures and piping",
+      "caption": "Experimental fusion reactor achieves record heat confinement",
+      "credit": "Unsplash"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=1200",
+      "alt": "Swirling blue and purple plasma energy field inside a vacuum chamber",
+      "caption": "Net energy gain threshold exceeded by two hundred percent",
+      "credit": "Unsplash"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=1200",
+      "alt": "A scientist smiling while looking at computer monitors displaying colorful complex graph plots",
+      "caption": "Global team celebrates a historic breakthrough in physics",
+      "credit": "Unsplash"
+    }
+  ],
+  "voice_script": "Unlimited energy... is finally here! Scientists just achieved a net energy gain of over two hundred percent--paving the way for clean, unlimited power. It is... the holy grail of clean energy. After seven decades of failure, researchers finally unlocked the secret. Inside the reactor, hydrogen isotopes fused at over one hundred million degrees Celsius--creating a miniature star right here on Earth! And the best part? It produces zero carbon emissions, and virtually zero nuclear waste. This changes everything. If we can scale this technology, fossil fuels... will become a relic of the past!",
+  "style": "breaking",
+  "metadata": {
+    "author": "Science Dispatch",
+    "date": "2026-06-09",
+    "source": "NIF Labs"
+  }
+}

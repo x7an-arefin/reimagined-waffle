@@ -1,0 +1,53 @@
+name: Render Existing Hyperframes Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_dir:
+        description: 'Path to the Hyperframes project directory'
+        required: true
+        default: 'output/history-of-computing-documentary-project'
+      quality:
+        description: 'Render quality: draft, standard, high'
+        required: true
+        default: 'draft'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run Hyperframes Render
+        run: |
+          PROJECT_DIR="${{ github.event.inputs.project_dir }}"
+          QUALITY="${{ github.event.inputs.quality }}"
+          
+          echo "Rendering project: $PROJECT_DIR with quality $QUALITY"
+          
+          # Run the hyperframes render command inside the project directory
+          cd "$PROJECT_DIR"
+          npx hyperframes render --output ../rendered-video.mp4 --quality "$QUALITY"
+
+      - name: Upload Rendered Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-video
+          path: output/rendered-video.mp4
+          if-no-files-found: error

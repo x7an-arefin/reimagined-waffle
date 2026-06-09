@@ -1,0 +1,11 @@
+{
+  "name": "Global Temperatures Hit Record Highs in May 2026",
+  "id": "news-2026-06-09-record-temps",
+  "style": "breaking",
+  "duration": 45.7,
+  "resolution": "1920x1080",
+  "fps": "30",
+  "hasTranscript": false,
+  "created": "2026-06-09T08:16:57.006Z",
+  "generator": "news-hypervideo CLI v0.1.0"
+}

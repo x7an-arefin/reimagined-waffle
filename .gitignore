@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.mp4
+temp-project/
+.env
+.DS_Store
+.idea/
+.vscode/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+output/work-*/

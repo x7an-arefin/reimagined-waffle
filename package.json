@@ -1,0 +1,37 @@
+{
+  "name": "news-hypervideo",
+  "version": "0.1.0",
+  "description": "TypeScript CLI to generate professional news videos from news.json using Hyperframes + GSAP + local TTS",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "news-hypervideo": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "generate": "npm run build && node dist/index.js generate",
+    "lint": "eslint .",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": ["video", "news", "hyperframes", "gsap", "tts", "cli", "automation"],
+  "author": "Newspaper Video Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "execa": "^9.5.2",
+    "fs-extra": "^11.2.0",
+    "handlebars": "^4.7.8",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

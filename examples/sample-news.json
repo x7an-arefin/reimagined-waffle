@@ -1,0 +1,37 @@
+{
+  "id": "news-2026-06-09-record-temps",
+  "title": "Global Temperatures Hit Record Highs in May 2026",
+  "lead": "Scientists warn of accelerating climate impacts as new data emerges from the World Meteorological Organization.",
+  "body": [
+    "The latest report shows average global temperatures soared past previous records by a significant margin.",
+    "Extreme weather events, including heatwaves and flooding, have increased dramatically in vulnerable regions around the world.",
+    "Experts are calling for urgent international policy action ahead of the major climate summit next month.",
+    "Data visualizations reveal stark regional differences, with polar areas warming at twice the global average rate."
+  ],
+  "photos": [
+    {
+      "src": "https://images.unsplash.com/photo-1569163139599-0f4517e36f51?w=1200",
+      "alt": "Dramatic image of melting glaciers and rising sea levels",
+      "caption": "Accelerating ice melt in polar regions",
+      "credit": "Unsplash / NASA"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=1200",
+      "alt": "City skyline during extreme heatwave",
+      "caption": "Urban areas experiencing record temperatures",
+      "credit": "Unsplash"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=1200",
+      "alt": "Scientists monitoring climate data",
+      "caption": "Researchers analyzing global temperature trends",
+      "credit": "Unsplash"
+    }
+  ],
+  "style": "breaking",
+  "metadata": {
+    "author": "Climate Desk",
+    "date": "2026-06-09",
+    "source": "WMO Report"
+  }
+}
