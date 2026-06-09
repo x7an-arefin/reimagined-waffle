@@ -12,6 +12,8 @@ import { generateComposition } from './composition-generator.js';
 import { renderVideo } from './renderer.js';
 import { downloadAndProcessPhotos } from './image-processor.js';
 import { downloadBackgroundMusic } from './music-search.js';
+import { loadTranscript } from './transcript-sync.js';
+import { getWavDuration } from './wav-parser.js';
 
 const program = new Command();
 
@@ -39,6 +41,7 @@ program
   .option('--preview', 'Open browser preview instead of rendering to MP4', false)
   .option('--no-render', 'Generate project but skip render step')
   .option('--gpu', 'Enable GPU-accelerated encoding (if supported)', false)
+  .option('--segments <n>', 'Split composition into n segments for parallel rendering', '1')
   .action(async (newsJsonPath: string, options) => {
     console.log('\n🎬 news-hypervideo — Production News Video Generator');
     console.log('─'.repeat(55));
@@ -159,43 +162,205 @@ program
         }
       }
 
-      // 5. Generate Hyperframes composition HTML
-      await generateComposition(news, script, narrationPath, transcriptPath, projectDir, processedPhotos, options);
-      console.log(`📁 Project generated: ${projectDir}`);
-      console.log('   → index.html (GSAP + Hyperframes data-attrs)');
-      console.log('   → assets/ (narration.wav, transcript.json, photos)');
+      const segmentsCount = parseInt(options.segments || '1');
 
-      // 6. Preview or Render
-      if (options.preview) {
-        console.log('\n🌐 Opening browser preview...');
-        const { execa } = await import('execa');
-        await execa('npx', ['hyperframes', 'preview'], { cwd: projectDir, stdio: 'inherit' });
-      } else if (options.render !== false) {
-        const presetMap: Record<string, { quality: string; workers: string }> = {
-          fast:     { quality: 'draft',    workers: options.workers === 'auto' ? '4' : options.workers },
-          balanced: { quality: 'standard', workers: options.workers === 'auto' ? '6' : options.workers },
-          final:    { quality: 'high',     workers: options.workers === 'auto' ? '8' : options.workers },
-        };
-        const preset = presetMap[options.preset] ?? presetMap.balanced;
+      if (segmentsCount <= 1) {
+        // 5. Generate standard single Hyperframes composition HTML
+        await generateComposition(news, script, narrationPath, transcriptPath, projectDir, processedPhotos, options);
+        console.log(`📁 Project generated: ${projectDir}`);
+        console.log('   → index.html (GSAP + Hyperframes data-attrs)');
+        console.log('   → assets/ (narration.wav, transcript.json, photos)');
 
-        console.log(`\n🎞️  Rendering video...`);
-        console.log(`   Preset: ${options.preset} | Quality: ${preset.quality} | Workers: ${preset.workers} | FPS: ${options.fps}`);
+        // 6. Preview or Render
+        if (options.preview) {
+          console.log('\n🌐 Opening browser preview...');
+          const { execa } = await import('execa');
+          await execa('npx', ['hyperframes', 'preview'], { cwd: projectDir, stdio: 'inherit' });
+        } else if (options.render !== false) {
+          const presetMap: Record<string, { quality: string; workers: string }> = {
+            fast:     { quality: 'draft',    workers: options.workers === 'auto' ? '4' : options.workers },
+            balanced: { quality: 'standard', workers: options.workers === 'auto' ? '6' : options.workers },
+            final:    { quality: 'high',     workers: options.workers === 'auto' ? '8' : options.workers },
+          };
+          const preset = presetMap[options.preset] ?? presetMap.balanced;
 
-        await renderVideo(projectDir, videoPath, {
-          resolution: options.resolution,
-          fps: parseInt(options.fps),
-          quality: preset.quality,
-          workers: preset.workers,
-          gpu: options.gpu,
-        });
+          console.log(`\n🎞️  Rendering video...`);
+          console.log(`   Preset: ${options.preset} | Quality: ${preset.quality} | Workers: ${preset.workers} | FPS: ${options.fps}`);
 
-        console.log(`\n✅ Done! Video: ${videoPath}`);
-        console.log(`   Project: ${projectDir}`);
-        console.log(`   Re-render anytime: cd "${projectDir}" && npx hyperframes render`);
+          await renderVideo(projectDir, videoPath, {
+            resolution: options.resolution,
+            fps: parseInt(options.fps),
+            quality: preset.quality,
+            workers: preset.workers,
+            gpu: options.gpu,
+          });
+
+          console.log(`\n✅ Done! Video: ${videoPath}`);
+          console.log(`   Project: ${projectDir}`);
+          console.log(`   Re-render anytime: cd "${projectDir}" && npx hyperframes render`);
+        } else {
+          console.log('\n✅ Project ready (--no-render). To render manually:');
+          console.log(`   cd "${projectDir}" && npx hyperframes render --output "${videoPath}"`);
+          console.log(`   Or preview: cd "${projectDir}" && npx hyperframes preview`);
+        }
       } else {
-        console.log('\n✅ Project ready (--no-render). To render manually:');
-        console.log(`   cd "${projectDir}" && npx hyperframes render --output "${videoPath}"`);
-        console.log(`   Or preview: cd "${projectDir}" && npx hyperframes preview`);
+        // 5. Segment Splitting Logic
+        console.log(`\n✂️  Segmenting project into ${segmentsCount} parts...`);
+        
+        // Generate the parent project files first (for full assets and metadata)
+        await generateComposition(news, script, narrationPath, transcriptPath, projectDir, processedPhotos, { ...options, isSegment: false });
+        console.log(`📁 Parent project generated at: ${projectDir}`);
+
+        const words = await loadTranscript(transcriptPath);
+        const { alignBeatsToTranscript, getAudioDuration } = await import('./transcript-sync.js');
+        
+        const estimatedDuration = news.duration_hint_seconds ?? Math.max(35, script.split(' ').length / 2.5);
+        let wavDuration = getWavDuration(narrationPath);
+        if (wavDuration <= 0) {
+          wavDuration = words.length > 0 ? getAudioDuration(words, estimatedDuration) : estimatedDuration;
+        }
+
+        const beats = words.length > 0
+          ? alignBeatsToTranscript(words, news.body)
+          : news.body.map((para, i) => {
+              const contentDuration = wavDuration - 8.0 - 4.5;
+              const segLen = contentDuration / news.body.length;
+              const start  = 8.0 + i * segLen;
+              return { beatIndex: i, text: para, start, end: start + segLen, duration: segLen };
+            });
+
+        const segmentSize = Math.ceil(beats.length / segmentsCount);
+        const segmentPaths: string[] = [];
+        const segmentDirs: string[] = [];
+        const { execa } = await import('execa');
+
+        const bgMusicPath = path.join(projectDir, 'assets', 'bg-music.mp3');
+
+        for (let i = 0; i < segmentsCount; i++) {
+          const segmentBeats = beats.slice(i * segmentSize, (i + 1) * segmentSize);
+          if (segmentBeats.length === 0) continue;
+
+          // Calculate start and end times for this segment
+          const t_start = i === 0 ? 0 : segmentBeats[0].start;
+          const t_end   = i === segmentsCount - 1 ? wavDuration : segmentBeats[segmentBeats.length - 1].end;
+          const t_duration = t_end - t_start;
+
+          const segProjectDir = `${projectDir}-seg${i}`;
+          segmentDirs.push(segProjectDir);
+          mkdirpSync(segProjectDir);
+          mkdirpSync(path.join(segProjectDir, 'assets'));
+          mkdirpSync(path.join(segProjectDir, 'compositions'));
+
+          console.log(`   Segment ${i}: ${t_start.toFixed(1)}s → ${t_end.toFixed(1)}s (Duration: ${t_duration.toFixed(1)}s)`);
+
+          // Slice narration WAV using FFmpeg
+          const segNarrationPath = path.join(segProjectDir, 'assets', 'narration.wav');
+          try {
+            await execa('ffmpeg', [
+              '-ss', String(t_start),
+              '-to', String(t_end),
+              '-i', narrationPath,
+              '-c', 'copy',
+              '-y',
+              segNarrationPath
+            ]);
+          } catch (err: any) {
+            throw new Error(`Failed to slice narration audio for segment ${i}: ${err.message}`);
+          }
+
+          // Slice and shift transcript words
+          const segWords = words
+            .filter(w => w.start >= t_start && w.end <= t_end)
+            .map(w => ({
+              text: w.text,
+              start: w.start - t_start,
+              end: w.end - t_start
+            }));
+          const segTranscriptPath = path.join(segProjectDir, 'assets', 'transcript.json');
+          writeFileSync(segTranscriptPath, JSON.stringify({ words: segWords }, null, 2));
+
+          // Partition photos
+          const photosPerSeg = Math.ceil(processedPhotos.length / segmentsCount);
+          let segPhotos = processedPhotos.slice(i * photosPerSeg, (i + 1) * photosPerSeg);
+          if (segPhotos.length === 0 && processedPhotos.length > 0) {
+            segPhotos = [processedPhotos[processedPhotos.length - 1]];
+          }
+
+          // Copy photos to segment assets
+          for (const photo of segPhotos) {
+            const destPhoto = path.join(segProjectDir, 'assets', photo.assetName);
+            await fse.copy(path.join(projectDir, 'assets', photo.assetName), destPhoto);
+          }
+
+          // Copy background music if present
+          const bgMusicDest = path.join(segProjectDir, 'assets', 'bg-music.mp3');
+          if (existsSync(bgMusicPath)) {
+            await fse.copy(bgMusicPath, bgMusicDest);
+          }
+
+          // Generate segment composition
+          const segmentNews: News = {
+            ...news,
+            id: `${news.id}-seg${i}`,
+            lead: i === 0 ? news.lead : undefined,
+            body: segmentBeats.map(b => b.text),
+            photos: segPhotos.map(p => ({ src: p.assetName, alt: p.alt, caption: p.caption, credit: p.credit })),
+          };
+
+          const segOptions = {
+            ...options,
+            isSegment: true,
+            segmentIndex: i,
+            totalSegments: segmentsCount
+          };
+
+          await generateComposition(
+            segmentNews,
+            segmentNews.body.join(' '),
+            segNarrationPath,
+            segTranscriptPath,
+            segProjectDir,
+            segPhotos,
+            segOptions
+          );
+
+          segmentPaths.push(path.join(outputDir, `${news.id}-seg${i}.mp4`));
+        }
+
+        console.log(`✅ All ${segmentsCount} segments successfully generated!`);
+
+        // 6. Preview or Render segments
+        if (options.preview) {
+          console.log('\n🌐 Opening browser preview for segment 0...');
+          await execa('npx', ['hyperframes', 'preview'], { cwd: segmentDirs[0], stdio: 'inherit' });
+        } else if (options.render !== false) {
+          const presetMap: Record<string, { quality: string; workers: string }> = {
+            fast:     { quality: 'draft',    workers: options.workers === 'auto' ? '4' : options.workers },
+            balanced: { quality: 'standard', workers: options.workers === 'auto' ? '6' : options.workers },
+            final:    { quality: 'high',     workers: options.workers === 'auto' ? '8' : options.workers },
+          };
+          const preset = presetMap[options.preset] ?? presetMap.balanced;
+
+          console.log(`\n🎞️  Rendering ${segmentsCount} segments sequentially...`);
+          for (let i = 0; i < segmentDirs.length; i++) {
+            console.log(`🎬 Rendering Segment ${i + 1}/${segmentsCount}...`);
+            await renderVideo(segmentDirs[i], segmentPaths[i], {
+              resolution: options.resolution,
+              fps: parseInt(options.fps),
+              quality: preset.quality,
+              workers: preset.workers,
+              gpu: options.gpu,
+            });
+          }
+
+          // Stitch segments together
+          console.log(`\n🧵 Stitching segment files together...`);
+          const { stitchSegments } = await import('./renderer.js');
+          await stitchSegments(segmentPaths, videoPath);
+          console.log(`\n✅ Done! Combined news video: ${videoPath}`);
+        } else {
+          console.log('\n✅ Segments ready (--no-render). Ready to be processed in CI parallel matrix.');
+        }
       }
 
     } catch (error) {

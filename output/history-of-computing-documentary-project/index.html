@@ -366,6 +366,7 @@
     <span class="meta-date">2026-06-09</span>
   </div>
 
+  
   <!-- ─── TITLE BLOCK (intro only) ─── -->
   <div id="accent-bar"></div>
   <div id="title-block" class="clip"
@@ -530,6 +531,7 @@
     <p class="beat-para"><span class="word" data-word-idx="0">To</span> <span class="word" data-word-idx="1">solve</span> <span class="word" data-word-idx="2">this,</span> <span class="word" data-word-idx="3">researchers</span> <span class="word" data-word-idx="4">are</span> <span class="word" data-word-idx="5">developing</span> <span class="word" data-word-idx="6">topological</span> <span class="word" data-word-idx="7">qubits</span> <span class="word" data-word-idx="8">and</span> <span class="word" data-word-idx="9">complex</span> <span class="word" data-word-idx="10">quantum</span> <span class="word" data-word-idx="11">error-correction</span> <span class="word" data-word-idx="12">algorithms,</span> <span class="word" data-word-idx="13">which</span> <span class="word" data-word-idx="14">use</span> <span class="word" data-word-idx="15">thousands</span> <span class="word" data-word-idx="16">of</span> <span class="word" data-word-idx="17">physical</span> <span class="word" data-word-idx="18">qubits</span> <span class="word" data-word-idx="19">to</span> <span class="word" data-word-idx="20">create</span> <span class="word" data-word-idx="21">a</span> <span class="word" data-word-idx="22">single,</span> <span class="word" data-word-idx="23">error-free</span> <span class="word" data-word-idx="24">logical</span> <span class="word" data-word-idx="25">qubit.</span> <span class="word" data-word-idx="26">The</span> <span class="word" data-word-idx="27">progress</span> <span class="word" data-word-idx="28">is</span> <span class="word" data-word-idx="29">slow,</span> <span class="word" data-word-idx="30">but</span> <span class="word" data-word-idx="31">it</span> <span class="word" data-word-idx="32">is</span> <span class="word" data-word-idx="33">accelerating.</span> <span class="word" data-word-idx="34">The</span> <span class="word" data-word-idx="35">legacy</span> <span class="word" data-word-idx="36">of</span> <span class="word" data-word-idx="37">Babbage,</span> <span class="word" data-word-idx="38">Lovelace,</span> <span class="word" data-word-idx="39">Turing,</span> <span class="word" data-word-idx="40">and</span> <span class="word" data-word-idx="41">Von</span> <span class="word" data-word-idx="42">Neumann</span> <span class="word" data-word-idx="43">is</span> <span class="word" data-word-idx="44">alive</span> <span class="word" data-word-idx="45">in</span> <span class="word" data-word-idx="46">every</span> <span class="word" data-word-idx="47">qubit,</span> <span class="word" data-word-idx="48">and</span> <span class="word" data-word-idx="49">the</span> <span class="word" data-word-idx="50">machines</span> <span class="word" data-word-idx="51">we</span> <span class="word" data-word-idx="52">build</span> <span class="word" data-word-idx="53">next</span> <span class="word" data-word-idx="54">will</span> <span class="word" data-word-idx="55">be</span> <span class="word" data-word-idx="56">the</span> <span class="word" data-word-idx="57">tools</span> <span class="word" data-word-idx="58">we</span> <span class="word" data-word-idx="59">use</span> <span class="word" data-word-idx="60">to</span> <span class="word" data-word-idx="61">navigate</span> <span class="word" data-word-idx="62">the</span> <span class="word" data-word-idx="63">unknown</span> <span class="word" data-word-idx="64">depths</span> <span class="word" data-word-idx="65">of</span> <span class="word" data-word-idx="66">the</span> <span class="word" data-word-idx="67">future.</span> <span class="word" data-word-idx="68">The</span> <span class="word" data-word-idx="69">infinite</span> <span class="word" data-word-idx="70">machine</span> <span class="word" data-word-idx="71">is</span> <span class="word" data-word-idx="72">no</span> <span class="word" data-word-idx="73">longer</span> <span class="word" data-word-idx="74">a</span> <span class="word" data-word-idx="75">dream...</span> <span class="word" data-word-idx="76">it</span> <span class="word" data-word-idx="77">is</span> <span class="word" data-word-idx="78">slowly</span> <span class="word" data-word-idx="79">becoming</span> <span class="word" data-word-idx="80">a</span> <span class="word" data-word-idx="81">reality.</span></p>
   </div>
 
+  
   <!-- ─── OUTRO ─── -->
   <div id="outro" class="clip"
        data-start="592.80"
@@ -569,6 +571,7 @@
     tl.fromTo('#reticle-br', { x: 30, y: 30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
     tl.fromTo('.pulsing-dot circle', { r: 3, opacity: 0.3 }, { r: 6, opacity: 1, duration: 0.6, repeat: Math.floor(597.3 / 1.2) - 1, yoyo: true, ease: 'sine.inOut' }, 0);
 
+    
     // ── TITLE SEQUENCE ──
     // Accent bar wipe in
     tl.fromTo('#accent-bar', { width: 0 }, { width: '288px', duration: 0.7, ease: 'power3.out' }, 0.2);
@@ -585,11 +588,12 @@
 
     // Lead line
     tl.from('.news-lead', { opacity: 0, y: 20, duration: 0.9, ease: 'power2.out' }, 1.3);
-    // Meta bar fade in
-    tl.from('#meta-bar', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
     // Title block fade out at end of intro
     tl.to('#title-block', { opacity: 0, y: -20, duration: 0.7, ease: 'power2.in' }, 5.5);
     tl.to('#accent-bar',  { opacity: 0, duration: 0.4, ease: 'power2.in' }, 5.7);
+    
+    // Meta bar fade in
+    tl.from('#meta-bar', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
 
     // ── PHOTO SEQUENCE (Ken Burns + crossfades) ──
     // Photo 1
@@ -668,11 +672,13 @@
     tl.to('#beat-13', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 553.71);
     tl.to('#beat-14', { opacity: 0, y: -15, duration: 0.5, ease: 'power2.in' }, 592.70);
 
+    
     // ── OUTRO ──
     tl.to('#outro',         { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, 592.80);
     tl.from('.outro-paper', { opacity: 0, y: 30, duration: 1.0, ease: 'power3.out' }, 593.20);
     tl.from('.outro-tagline', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 593.70);
     tl.from('.outro-accent-line', { scaleX: 0, duration: 0.6, ease: 'power3.out', stagger: 0.2 }, 593.10);
+    
 
     // ── Extend timeline to full duration (zero-cost) ──
     tl.set({}, {}, 597.3); // extend timeline to full duration

@@ -1,0 +1,225 @@
+name: Parallel Segment Render (Matrix Build)
+
+on:
+  workflow_dispatch:
+    inputs:
+      news_json_path:
+        description: 'Path to the news.json file'
+        required: true
+        default: 'examples/long-history-news.json'
+      segments:
+        description: 'Number of parallel segments to split into'
+        required: true
+        default: '3'
+      skip_tts:
+        description: 'Skip TTS & reuse existing narration.wav (true/false)'
+        required: true
+        default: 'true'
+      voice:
+        description: 'Kokoro voice (used if skip_tts is false)'
+        required: true
+        default: 'af_bella'
+      quality:
+        description: 'Render quality: draft, standard, high'
+        required: true
+        default: 'draft'
+      resolution:
+        description: 'Output resolution preset'
+        required: true
+        default: 'landscape'
+      fps:
+        description: 'Frame rate'
+        required: true
+        default: '15'
+
+jobs:
+  generate-and-split:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      project_id: ${{ steps.get-info.outputs.project_id }}
+      output_dir: ${{ steps.get-info.outputs.output_dir }}
+    
+    # Run Kokoro TTS container if we need to generate new audio
+    services:
+      kokoro-tts:
+        image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+        ports:
+          - 8880:8880
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript CLI
+        run: npm run build
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Wait for Kokoro TTS Service (if not skipping TTS)
+        if: github.event.inputs.skip_tts == 'false'
+        run: |
+          echo "Waiting for Kokoro TTS service to start..."
+          for i in {1..30}; do
+            curl -s http://localhost:8880/web && break || sleep 2
+          done
+          echo "Kokoro TTS is ready!"
+
+      - name: Generate and Segment Project
+        id: get-info
+        run: |
+          JSON_PATH="${{ github.event.inputs.news_json_path }}"
+          SEGMENTS="${{ github.event.inputs.segments }}"
+          VOICE="${{ github.event.inputs.voice }}"
+          SKIP_TTS="${{ github.event.inputs.skip_tts }}"
+          
+          # Read news ID from news.json for naming
+          PROJECT_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$JSON_PATH', 'utf-8')).id)")
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          
+          # Determine the parent project directory
+          PROJECT_DIR="output/$PROJECT_ID-project"
+          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
+          
+          # Build arguments
+          ARGS="$JSON_PATH --no-render --segments $SEGMENTS --project-dir ./$PROJECT_DIR --voice $VOICE"
+          if [ "$SKIP_TTS" = "true" ]; then
+            ARGS="$ARGS --skip-tts"
+          fi
+          
+          # Generate segments
+          npm run generate -- $ARGS
+
+      - name: Set Parallel Matrix Output
+        id: set-matrix
+        run: |
+          SEGMENTS="${{ github.event.inputs.segments }}"
+          MATRIX_JSON=$(node -e "console.log(JSON.stringify(Array.from({length: parseInt(process.argv[1])}, (_, i) => i)))" "$SEGMENTS")
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
+      - name: Zip Segments for Upload
+        run: |
+          # Zip all generated segment directories (excluding work dirs)
+          PROJECT_ID="${{ steps.get-info.outputs.project_id }}"
+          zip -r segment-projects.zip output/${PROJECT_ID}-project-seg*
+
+      - name: Upload Segment Projects Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: segment-projects
+          path: segment-projects.zip
+          retention-days: 1
+
+  render-segment:
+    needs: generate-and-split
+    runs-on: ubuntu-latest
+    strategy:
+      # Render all segments in parallel jobs
+      matrix:
+        segment: ${{ fromJSON(needs.generate-and-split.outputs.matrix) }}
+      fail-fast: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Download Segment Projects
+        uses: actions/download-artifact@v4
+        with:
+          name: segment-projects
+
+      - name: Unzip Segment Projects
+        run: unzip segment-projects.zip
+
+      - name: Render Matrix Segment
+        run: |
+          PROJECT_ID="${{ needs.generate-and-split.outputs.project_id }}"
+          SEG_DIR="output/${PROJECT_ID}-project-seg${{ matrix.segment }}"
+          QUALITY="${{ github.event.inputs.quality }}"
+          RESOLUTION="${{ github.event.inputs.resolution }}"
+          FPS="${{ github.event.inputs.fps }}"
+          
+          echo "Rendering Segment ${{ matrix.segment }} at $SEG_DIR"
+          
+          cd "$SEG_DIR"
+          
+          # Run Hyperframes render in low memory single worker mode to optimize speed
+          npx hyperframes render --output ../rendered-seg${{ matrix.segment }}.mp4 --quality "$QUALITY" --resolution "$RESOLUTION" --fps "$FPS" --workers 1 --low-memory-mode
+
+      - name: Upload Rendered Segment MP4
+        uses: actions/upload-artifact@v4
+        with:
+          name: segment-mp4-${{ matrix.segment }}
+          path: output/rendered-seg${{ matrix.segment }}.mp4
+          retention-days: 1
+
+  stitch-video:
+    needs: [generate-and-split, render-segment]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Download All Segment MP4s
+        uses: actions/download-artifact@v4
+        with:
+          pattern: segment-mp4-*
+          merge-multiple: true
+          path: output/segments/
+
+      - name: Stitch Segments
+        run: |
+          cd output/segments
+          
+          # Create FFmpeg concat list
+          # Get list of segment mp4 files ordered numerically
+          echo "Building FFmpeg concat text file..."
+          
+          SEGMENTS_COUNT="${{ github.event.inputs.segments }}"
+          for ((i=0; i<SEGMENTS_COUNT; i++)); do
+            echo "file 'rendered-seg$i.mp4'" >> concat.txt
+          done
+          
+          cat concat.txt
+          
+          # Stitch together (copy stream is instantaneous and lossless)
+          ffmpeg -f concat -safe 0 -i concat.txt -c copy ../final-video.mp4
+
+      - name: Upload Final Stitched Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-video
+          path: output/final-video.mp4
+          if-no-files-found: error

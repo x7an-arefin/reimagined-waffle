@@ -81,19 +81,30 @@ export async function generateComposition(
     wavDuration = hasTranscript ? getAudioDuration(words, estimatedDuration) : estimatedDuration;
   }
   
-  // Add 4.5s padding at the end for the outro sequence
-  const totalDuration = wavDuration + 4.5;
+  const isSegment = !!options.isSegment;
+  const segmentIndex = options.segmentIndex !== undefined ? parseInt(options.segmentIndex) : 0;
+  const totalSegments = options.totalSegments !== undefined ? parseInt(options.totalSegments) : 1;
+
+  // Add padding at the end for the outro sequence ONLY in the last segment or non-split builds
+  const isLastSegment = !isSegment || (segmentIndex === totalSegments - 1);
+  const outroDur = isLastSegment ? 4.5 : 0.5;
+  const totalDuration = wavDuration + outroDur;
 
   const bgMusicPath = path.join(projectDir, 'assets', 'bg-music.mp3');
   const hasBgMusic = await pathExists(bgMusicPath);
 
-  const photoTimings: PhotoTiming[] = distributePhotoTimings(totalDuration, photos.length, 5.5, 4.5);
+  const isFirstSegment = !isSegment || (segmentIndex === 0);
+  const introEnd = isFirstSegment ? 5.5 : 0.5;
+  const beatIntroEnd = isFirstSegment ? 8.0 : 0.5;
+
+  const photoTimings: PhotoTiming[] = distributePhotoTimings(totalDuration, photos.length, introEnd, outroDur);
 
   const beats: BeatTiming[] = hasTranscript
     ? alignBeatsToTranscript(words, news.body)
     : news.body.map((para, i) => {
-        const segLen = (totalDuration - 8 - 4.5) / news.body.length;
-        const start  = 8 + i * segLen;
+        const contentDuration = Math.max(totalDuration - beatIntroEnd - outroDur, news.body.length * 2);
+        const segLen = contentDuration / news.body.length;
+        const start  = beatIntroEnd + i * segLen;
         return { beatIndex: i, text: para, start, end: start + segLen, duration: segLen };
       });
 
@@ -203,6 +214,74 @@ export async function generateComposition(
 
   // Extend timeline sentinel (zero-cost, ensures full duration)
   const sentinelLine = `tl.set({}, {}, ${totalDuration.toFixed(1)}); // extend timeline to full duration`;
+
+  // Segment layout configurations
+  let titleBlockHtml = '';
+  let titleGsap = '';
+  if (isFirstSegment) {
+    titleBlockHtml = `
+  <!-- ─── TITLE BLOCK (intro only) ─── -->
+  <div id="accent-bar"></div>
+  <div id="title-block" class="clip"
+       data-start="0" data-duration="6" data-track-index="2"
+       style="transform-style: preserve-3d; z-index: 25;">
+    <div class="news-label" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg class="pulsing-dot" width="12" height="12" viewBox="0 0 12 12" style="overflow: visible;">
+        <circle cx="6" cy="6" r="4" fill="${PALETTE.white}"></circle>
+      </svg>
+      <span>${escHtml(label)}</span>
+    </div>
+    <h1 class="news-headline">${headlineWordsHtml}</h1>
+    ${news.lead ? `<p class="news-lead">${escHtml(news.lead)}</p>` : ''}
+  </div>`;
+
+    titleGsap = `
+    // ── TITLE SEQUENCE ──
+    // Accent bar wipe in
+    tl.fromTo('#accent-bar', { width: 0 }, { width: '${Math.round(w * 0.15)}px', duration: 0.7, ease: 'power3.out' }, 0.2);
+    // Label slam
+    tl.from('.news-label', { opacity: 0, x: -30, duration: 0.5, ease: 'power3.out' }, 0.5);
+    
+    // Headline: 3D staggered word reveal
+    tl.set('#title-block', { perspective: 1000 }, 0);
+    tl.fromTo('.headline-word', 
+      { opacity: 0, y: 50, rotateX: -60, scale: 0.8 }, 
+      { opacity: 1, y: 0, rotateX: 0, scale: 1, duration: 0.85, ease: 'back.out(1.5)', stagger: 0.08 }, 
+      0.6
+    );
+
+    // Lead line
+    ${news.lead ? "tl.from('.news-lead', { opacity: 0, y: 20, duration: 0.9, ease: 'power2.out' }, 1.3);" : '// (no lead)'}
+    // Title block fade out at end of intro
+    tl.to('#title-block', { opacity: 0, y: -20, duration: 0.7, ease: 'power2.in' }, 5.5);
+    tl.to('#accent-bar',  { opacity: 0, duration: 0.4, ease: 'power2.in' }, 5.7);
+    `;
+  }
+
+  let outroHtml = '';
+  let outroGsap = '';
+  if (isLastSegment) {
+    outroHtml = `
+  <!-- ─── OUTRO ─── -->
+  <div id="outro" class="clip"
+       data-start="${outroStart.toFixed(2)}"
+       data-duration="${(totalDuration - outroStart + 0.5).toFixed(2)}"
+       data-track-index="${3 + photos.length * 2 + beats.length}"
+       style="opacity:0;">
+    <div class="outro-accent-line"></div>
+    <div class="outro-paper">${escHtml(news.metadata?.author ?? 'The Daily')}</div>
+    <div class="outro-tagline">Stay Informed &bull; Stay Ahead</div>
+    <div class="outro-accent-line"></div>
+  </div>`;
+
+    outroGsap = `
+    // ── OUTRO ──
+    tl.to('#outro',         { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, ${outroStart.toFixed(2)});
+    tl.from('.outro-paper', { opacity: 0, y: 30, duration: 1.0, ease: 'power3.out' }, ${(outroStart + 0.4).toFixed(2)});
+    tl.from('.outro-tagline', { opacity: 0, duration: 0.8, ease: 'power2.out' }, ${(outroStart + 0.9).toFixed(2)});
+    tl.from('.outro-accent-line', { scaleX: 0, duration: 0.6, ease: 'power3.out', stagger: 0.2 }, ${(outroStart + 0.3).toFixed(2)});
+    `;
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -475,20 +554,7 @@ ${photoClipsHtml}
     <span class="meta-date">${escHtml(news.metadata?.date ?? new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}</span>
   </div>
 
-  <!-- ─── TITLE BLOCK (intro only) ─── -->
-  <div id="accent-bar"></div>
-  <div id="title-block" class="clip"
-       data-start="0" data-duration="6" data-track-index="2"
-       style="transform-style: preserve-3d; z-index: 25;">
-    <div class="news-label" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-      <svg class="pulsing-dot" width="12" height="12" viewBox="0 0 12 12" style="overflow: visible;">
-        <circle cx="6" cy="6" r="4" fill="${PALETTE.white}"></circle>
-      </svg>
-      <span>${escHtml(label)}</span>
-    </div>
-    <h1 class="news-headline">${headlineWordsHtml}</h1>
-    ${news.lead ? `<p class="news-lead">${escHtml(news.lead)}</p>` : ''}
-  </div>
+  ${titleBlockHtml}
 
   <!-- ─── SVG CORNER RETICLES & PROGRESS BAR ─── -->
   <svg id="reticles" width="100%" height="100%" style="position:absolute; inset:0; z-index: 30; pointer-events:none;">
@@ -505,17 +571,7 @@ ${photoClipsHtml}
   <!-- ─── BODY TEXT BEATS (one per paragraph) ─── -->
 ${beatClipsHtml}
 
-  <!-- ─── OUTRO ─── -->
-  <div id="outro" class="clip"
-       data-start="${outroStart.toFixed(2)}"
-       data-duration="${(totalDuration - outroStart + 0.5).toFixed(2)}"
-       data-track-index="${3 + photos.length * 2 + beats.length}"
-       style="opacity:0;">
-    <div class="outro-accent-line"></div>
-    <div class="outro-paper">${escHtml(news.metadata?.author ?? 'The Daily')}</div>
-    <div class="outro-tagline">Stay Informed &bull; Stay Ahead</div>
-    <div class="outro-accent-line"></div>
-  </div>
+  ${outroHtml}
 
   <!-- ─── FILM GRAIN OVERLAY ─── -->
   <div id="grain"></div>
@@ -544,27 +600,9 @@ ${beatClipsHtml}
     tl.fromTo('#reticle-br', { x: 30, y: 30, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.2);
     tl.fromTo('.pulsing-dot circle', { r: 3, opacity: 0.3 }, { r: 6, opacity: 1, duration: 0.6, repeat: Math.floor(${totalDuration} / 1.2) - 1, yoyo: true, ease: 'sine.inOut' }, 0);
 
-    // ── TITLE SEQUENCE ──
-    // Accent bar wipe in
-    tl.fromTo('#accent-bar', { width: 0 }, { width: '${Math.round(w * 0.15)}px', duration: 0.7, ease: 'power3.out' }, 0.2);
-    // Label slam
-    tl.from('.news-label', { opacity: 0, x: -30, duration: 0.5, ease: 'power3.out' }, 0.5);
-    
-    // Headline: 3D staggered word reveal
-    tl.set('#title-block', { perspective: 1000 }, 0);
-    tl.fromTo('.headline-word', 
-      { opacity: 0, y: 50, rotateX: -60, scale: 0.8 }, 
-      { opacity: 1, y: 0, rotateX: 0, scale: 1, duration: 0.85, ease: 'back.out(1.5)', stagger: 0.08 }, 
-      0.6
-    );
-
-    // Lead line
-    ${news.lead ? "tl.from('.news-lead', { opacity: 0, y: 20, duration: 0.9, ease: 'power2.out' }, 1.3);" : '// (no lead)'}
+    ${titleGsap}
     // Meta bar fade in
     tl.from('#meta-bar', { opacity: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
-    // Title block fade out at end of intro
-    tl.to('#title-block', { opacity: 0, y: -20, duration: 0.7, ease: 'power2.in' }, 5.5);
-    tl.to('#accent-bar',  { opacity: 0, duration: 0.4, ease: 'power2.in' }, 5.7);
 
     // ── PHOTO SEQUENCE (Ken Burns + crossfades) ──
     ${photoGsapLines.join('\n    ')}
@@ -572,11 +610,7 @@ ${beatClipsHtml}
     // ── BODY TEXT BEATS ──
     ${beatGsapLines.join('\n    ')}
 
-    // ── OUTRO ──
-    tl.to('#outro',         { opacity: 1, duration: 1.2, ease: 'power2.inOut' }, ${outroStart.toFixed(2)});
-    tl.from('.outro-paper', { opacity: 0, y: 30, duration: 1.0, ease: 'power3.out' }, ${(outroStart + 0.4).toFixed(2)});
-    tl.from('.outro-tagline', { opacity: 0, duration: 0.8, ease: 'power2.out' }, ${(outroStart + 0.9).toFixed(2)});
-    tl.from('.outro-accent-line', { scaleX: 0, duration: 0.6, ease: 'power3.out', stagger: 0.2 }, ${(outroStart + 0.3).toFixed(2)});
+    ${outroGsap}
 
     // ── Extend timeline to full duration (zero-cost) ──
     ${sentinelLine}
