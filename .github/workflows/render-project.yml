@@ -12,9 +12,9 @@ on:
         required: true
         default: 'draft'
       resolution:
-        description: 'Output resolution preset: 720p, 1080p, 4k, portrait, square'
+        description: 'Output resolution preset (landscape, portrait, square, 1080p, 4k)'
         required: true
-        default: '720p'
+        default: 'landscape'
       fps:
         description: 'Frame rate: 15, 24, 30, 60'
         required: true
